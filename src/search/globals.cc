@@ -62,23 +62,48 @@ void save_plan(const vector<const GlobalOperator *> &plan,
                bool generates_multiple_plan_files) {
     // TODO: Refactor: this is only used by the SearchEngine classes
     //       and hence should maybe be moved into the SearchEngine.
-    ostringstream filename;
+    ostringstream filename, filename_em;
     filename << g_plan_filename;
+    filename_em << g_plan_em_filename;
     int plan_number = g_num_previously_generated_plans + 1;
     if (generates_multiple_plan_files || g_is_part_of_anytime_portfolio) {
         filename << "." << plan_number;
+        filename_em << "." << plan_number;
     } else {
         assert(plan_number == 1);
     }
-    ofstream outfile(filename.str());
-    for (size_t i = 0; i < plan.size(); ++i) {
-        cout << plan[i]->get_name() << " (" << plan[i]->get_cost() << ")" << endl;
-        outfile << "(" << plan[i]->get_name() << ")" << endl;
+    ofstream outfile(filename.str()), outfile_em(filename_em.str());
+    GlobalState state = g_state_registry->get_initial_state();
+    for (size_t j = 0; j <= plan.size(); ++j) {
+       size_t i = j - 1;
+       // write action:
+       if (j) {
+           cout << "action: (" << plan[i]->get_name() << ")" << endl;
+           cout << "cost: " << plan[i]->get_cost() << endl;
+           outfile << "(" << plan[i]->get_name() << ")" << endl;
+           outfile_em << "(" << plan[i]->get_name() << ")" << endl;
+           // get next state:
+           state = g_state_registry->get_successor_state(state, *plan[i]);
+       }
+       // write state:
+       cout << "state:";
+        for (size_t i = 0; i < g_variable_domain.size(); ++i) {
+           const string &fact_name = g_fact_names[i][state[i]];
+           if (fact_name.substr(0, 5) == "Atom ") {
+               cout << " " << fact_name.substr(5);
+               outfile_em << (i ? " " : "(") << fact_name.substr(5);
+           }
+        }
+        cout << ")" << endl;
+        outfile_em << ")" << endl;
     }
     int plan_cost = calculate_plan_cost(plan);
     outfile << "; cost = " << plan_cost << " ("
             << (is_unit_cost() ? "unit cost" : "general cost") << ")" << endl;
     outfile.close();
+    outfile_em << "; cost = " << plan_cost << " ("
+            << (is_unit_cost() ? "unit cost" : "general cost") << ")" << endl;
+    outfile_em.close();
     cout << "Plan length: " << plan.size() << " step(s)." << endl;
     cout << "Plan cost: " << plan_cost << endl;
     ++g_num_previously_generated_plans;
@@ -388,6 +413,7 @@ AxiomEvaluator *g_axiom_evaluator;
 SuccessorGenerator *g_successor_generator;
 
 string g_plan_filename = "sas_plan";
+string g_plan_em_filename = "sas_plan_em";
 int g_num_previously_generated_plans = 0;
 bool g_is_part_of_anytime_portfolio = false;
 Utils::RandomNumberGenerator g_rng(2011); // Use an arbitrary default seed.

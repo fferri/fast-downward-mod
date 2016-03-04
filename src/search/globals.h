@@ -71,6 +71,7 @@ extern std::vector<GlobalOperator> g_axioms;
 extern AxiomEvaluator *g_axiom_evaluator;
 extern SuccessorGenerator *g_successor_generator;
 extern std::string g_plan_filename;
+extern std::string g_plan_em_filename;
 extern int g_num_previously_generated_plans;
 extern bool g_is_part_of_anytime_portfolio;
 extern Utils::RandomNumberGenerator g_rng;
